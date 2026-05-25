@@ -1681,27 +1681,38 @@ document.getElementById('img-input').addEventListener('change', async (e) => {
 });
 
 // 共通のデータ変換処理
+// 【ここを既存の processExtractedText と入れ替えてください】
 function processExtractedText(text) {
-    const regex = /問題[:：](.+?)\s*答え[:：](.+?)(?=問題|$)/g;
+    // 1. 正規表現で「英単語」と「意味」のペアを抽出する
+    // 解説: ([a-zA-Z]+) で英単語を拾い、\s+ で空白を飛ばし、([^\n]{5,}) でその後の行を意味として拾う
+    const regex = /([a-zA-Z]+)\s+([^\n]{5,})/g;
     let match;
     let importedCount = 0;
-    
+
+    // 2. 抽出ループ
     while ((match = regex.exec(text)) !== null) {
-        db.push({
-            id: 'id_' + Math.random().toString(36).slice(2) + Date.now().toString(36),
-            question: match[1].trim(),
-            answer: match[2].trim(),
-            category: "インポート",
-            level: 0, correct: 0, incorrect: 0
-        });
-        importedCount++;
+        const q = match[1].trim(); // 問題（英単語）
+        const a = match[2].trim(); // 答え（意味）
+
+        // 重複チェックをして追加
+        if (q && a && !db.some(d => d.question === q)) {
+            db.push({
+                id: 'id_' + Math.random().toString(36).slice(2) + Date.now().toString(36),
+                question: q,
+                answer: a,
+                category: "単語帳インポート",
+                level: 0, correct: 0, incorrect: 0
+            });
+            importedCount++;
+        }
     }
-    
+
+    // 3. 結果表示
     if (importedCount > 0) {
-        autoMerge(); // 既存の保存・更新関数
-        alert(`${importedCount} 問を追加しました！`);
+        autoMerge();
+        alert(`${importedCount} 個の単語を取り込みました！`);
     } else {
-        alert("問題形式が見つかりませんでした。「問題:〜 答え:〜」という記述があるか確認してください。");
+        alert("単語データが見つかりませんでした。PDFのレイアウトを確認してください。");
     }
 }
 
